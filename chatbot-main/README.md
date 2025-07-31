@@ -42,7 +42,7 @@ Remember, in most cases, you don't need to run these commands separately as Spot
 Installation
 ------------
 1. Build the module to produce the .omod file.
-2. Use the OpenMRS Administration > Manage Modules screen to upload and install the .omod file.
+2. Use the OpenMRS Administration > Manage Modules screen to upload and install the .omod file (chatbot-main/omod/target/chatbot-1.0.0-SNAPSHOT.omod).
 
 If uploads are not allowed from the web (changable via a runtime property), you can drop the omod
 into the ~/.OpenMRS/modules folder.  (Where ~/.OpenMRS is assumed to be the Application 

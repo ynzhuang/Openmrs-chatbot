@@ -1,0 +1,6 @@
+org/openmrs/module/chatbot/Item.class
+org/openmrs/module/chatbot/OpenMRSChatbotActivator.class
+org/openmrs/module/chatbot/OpenMRSChatbotConfig.class
+org/openmrs/module/chatbot/api/dao/OpenMRSChatbotDao.class
+org/openmrs/module/chatbot/api/impl/OpenMRSChatbotServiceImpl.class
+org/openmrs/module/chatbot/api/OpenMRSChatbotService.class

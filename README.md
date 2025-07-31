@@ -1,6 +1,6 @@
 # 🛠️ OpenMRS Chatbot Module
 
-Welcome to the **OpenMRS Chatbot Module**! This module enhances **OpenMRS Platform 2.7.3** with chatbot functionality for healthcare informatics. This guide provides **macOS-specific** instructions to set up the development environment, run OpenMRS, and contribute to the `openmrschatbot` module. It uses **Docker** for MySQL and the **OpenMRS SDK** for server management.
+Welcome to the **OpenMRS Chatbot Module**! This module enhances **OpenMRS Platform 2.7.3** with chatbot functionality for healthcare informatics. This guide provides **macOS-specific** instructions to set up the development environment, run OpenMRS, and contribute to the `openmrschatbot` module, located in the `chatbot-main` subfolder. It uses **Docker** for MySQL and the **OpenMRS SDK** for server management.
 
 ## 📋 Table of Contents
 - [Prerequisites](#-prerequisites)
@@ -180,8 +180,8 @@ EOF
 
 1. **Clone Repository** (if not already done):
    ```bash
-   git clone https://github.com/your-username/openmrschatbot.git
-   cd openmrschatbot
+   git clone https://github.com/ynzhuang/Openmrs-chatbot.git
+   cd Openmrs-chatbot/chatbot-main
    ```
 
 2. **Build Module**:
@@ -222,9 +222,28 @@ EOF
    mvn openmrs-sdk:run -DserverId=chatbot
    ```
 
+## 🤝 Contributing
+
+We welcome contributions to enhance the `openmrschatbot` module!
+
+1. Fork the repository.
+2. Create a feature branch:
+   ```bash
+   git checkout -b feature/your-feature
+   ```
+3. Commit changes:
+   ```bash
+   git commit -m "Add your feature"
+   ```
+4. Push to branch:
+   ```bash
+   git push origin feature/your-feature
+   ```
+5. Open a pull request on GitHub.
+
 ### Development Workflow
 - **Build**: `mvn clean package`
-- **Deploy**: Copy `omod/target/openmrschatbot*.omod` to `~/openmrs/chatbot/modules/`
+- **Deploy**: Copy `chatbot-main/omod/target/openmrschatbot*.omod` to `~/openmrs/chatbot/modules/`
 - **Format Code**: Use Spotless:
   ```bash
   mvn spotless:apply
@@ -274,4 +293,7 @@ EOF
 - **Resources**:
   - [OpenMRS Documentation](https://wiki.openmrs.org/)
   - [OpenMRS Community](https://talk.openmrs.org/)
-  - [GitHub Issues](https://github.com/your-username/openmrschatbot/issues)
+  - [GitHub Issues](https://github.com/ynzhuang/Openmrs-chatbot/issues)
+
+## 📜 License
+[MIT License](LICENSE)

@@ -1,17 +1,21 @@
-# OpenMRS Chatbot Module
+# 🛠️ OpenMRS Chatbot Module
 
-Welcome to the **OpenMRS Chatbot Module** repository! This module enhances OpenMRS with chatbot functionality for healthcare informatics. It’s built for **OpenMRS Platform 2.5.9** and uses **MySQL 8.0** in a Docker container. This guide provides **macOS-specific** instructions to set up a local development environment and contribute to the project.
+Welcome to the **OpenMRS Chatbot Module**! This module enhances **OpenMRS Platform 2.7.3** with chatbot functionality for healthcare informatics. This guide provides **macOS-specific** instructions to set up the development environment, run OpenMRS, and contribute to the `openmrschatbot` module. It uses **Docker** for MySQL and the **OpenMRS SDK** for server management.
 
-## Table of Contents
-- [Prerequisites](#prerequisites)
-- [Setup Instructions](#setup-instructions)
-- [Contributing](#contributing)
-- [Troubleshooting](#troubleshooting)
-- [License](#license)
+## 📋 Table of Contents
+- [Prerequisites](#-prerequisites)
+- [Setup MySQL Container](#-setup-mysql-container)
+- [Setup OpenMRS Server](#-setup-openmrs-server)
+- [Launch OpenMRS](#-launch-openmrs)
+- [Build and Deploy Module](#-build-and-deploy-module)
+- [Restarting in the Future](#-restarting-in-the-future)
+- [Contributing](#-contributing)
+- [Troubleshooting](#-troubleshooting)
+- [License](#-license)
 
-## Prerequisites
+## 📦 Prerequisites
 
-Install the following tools on your Mac:
+Install these tools on your Mac using **Terminal** (open via Launchpad or Spotlight Search).
 
 ### 1. Homebrew
 The macOS package manager.
@@ -24,7 +28,7 @@ brew --version
 ```
 
 ### 2. Java 11
-Required for OpenMRS 2.5.9.
+Required for OpenMRS 2.7.3.
 
 ```bash
 brew install --cask temurin@11
@@ -36,12 +40,12 @@ java -version
 ### 3. Docker Desktop
 Runs the MySQL database.
 
-1. Download: [Docker Desktop for Mac](https://www.docker.com/products/docker-desktop)
-2. Install the `.dmg` file and start Docker Desktop.
-3. Verify:
-   ```bash
-   docker --version
-   ```
+- Download: [Docker Desktop for Mac](https://www.docker.com/products/docker-desktop)
+- Install the `.dmg` file and start Docker Desktop (check for the Docker icon in the top menu bar).
+- Verify:
+  ```bash
+  docker --version
+  ```
 
 ### 4. Maven
 Builds the module.
@@ -59,68 +63,72 @@ brew install git
 git --version
 ```
 
-### 6. IntelliJ IDEA (Optional)
+### 6. OpenMRS SDK
+Manages OpenMRS instances.
+
+```bash
+mvn org.openmrs.maven.plugins:openmrs-sdk-maven-plugin:setup-sdk
+mvn openmrs-sdk:help
+```
+
+### 7. IntelliJ IDEA (Optional)
 Recommended IDE.
 
 ```bash
 brew install --cask intellij-idea-ce
 ```
 
-## Setup Instructions
+## 🐬 Setup MySQL Container
 
-### 1. Clone the Repository
-```bash
-git clone https://github.com/your-username/openmrschatbot.git
-cd openmrschatbot
-```
+**Note**: Use the Mac **Terminal** app, not the Docker Desktop Terminal.
 
-### 2. Set Up MySQL Database
-Run a MySQL 8.0 container named `openmrs-sdk-mysql-v8-4-1`.
+1. **Run MySQL Container**:
+   Creates a container named `openmrs-sdk-mysql-v8-4-1` for the `chatbot` database.
 
-```bash
-docker run --name openmrs-sdk-mysql-v8-4-1 -p 3308:3306 -e MYSQL_ROOT_PASSWORD=openmrs -e MYSQL_USER=openmrs -e MYSQL_PASSWORD=openmrs -e MYSQL_DATABASE=chatbot -d mysql:8
-```
-
-Grant privileges:
-```bash
-docker exec -it openmrs-sdk-mysql-v8-4-1 mysql -u root -p
-```
-```sql
-CREATE DATABASE chatbot;
-GRANT ALL PRIVILEGES ON chatbot.* TO 'openmrs'@'172.17.0.1' IDENTIFIED BY 'openmrs';
-GRANT ALL PRIVILEGES ON chatbot.* TO 'openmrs'@'%' IDENTIFIED BY 'openmrs';
-FLUSH PRIVILEGES;
-EXIT;
-```
-
-Verify connection:
-```bash
-mysql -u openmrs -p -h 127.0.0.1 -P 3308 --protocol=TCP chatbot
-```
-
-### 3. Configure OpenMRS Environment
-Set up OpenMRS 2.5.9 in `~/openmrs/server4`.
-
-1. **Create Directory**:
    ```bash
-   mkdir -p ~/openmrs/server4
-   cd ~/openmrs/server4
+   docker run --name openmrs-sdk-mysql-v8-4-1 -p 3308:3306 -e MYSQL_ROOT_PASSWORD=openmrs -e MYSQL_USER=openmrs -e MYSQL_PASSWORD=openmrs -e MYSQL_DATABASE=chatbot -d mysql:8
    ```
 
-2. **Download Dependencies**:
+2. **Configure Database**:
    ```bash
-   wget https://repo1.maven.org/maven2/mysql/mysql-connector-java/8.0.30/mysql-connector-java-8.0.30.jar -O ~/openmrs/server4/server/apache-tomcat/lib/mysql-connector-java-8.0.30.jar
-   chmod u+r ~/openmrs/server4/server/apache-tomcat/lib/mysql-connector-java-8.0.30.jar
-   mkdir -p ~/openmrs/server4/webapps/openmrs/WEB-INF/lib
-   cp ~/openmrs/server4/server/apache-tomcat/lib/mysql-connector-java-8.0.30.jar ~/openmrs/server4/webapps/openmrs/WEB-INF/lib/
-   wget https://repo1.maven.org/maven2/org/yaml/snakeyaml/1.33/snakeyaml-1.33.jar -O ~/openmrs/server4/server/apache-tomcat/lib/snakeyaml-1.33.jar
-   chmod u+r ~/openmrs/server4/server/apache-tomcat/lib/snakeyaml-1.33.jar
-   cp ~/openmrs/server4/server/apache-tomcat/lib/snakeyaml-1.33.jar ~/openmrs/server4/webapps/openmrs/WEB-INF/lib/
+   docker exec -it openmrs-sdk-mysql-v8-4-1 mysql -u root -p
    ```
+   Enter password: `openmrs`
+   ```sql
+   CREATE DATABASE chatbot;
+   GRANT ALL PRIVILEGES ON chatbot.* TO 'openmrs'@'172.17.0.1' IDENTIFIED BY 'openmrs';
+   GRANT ALL PRIVILEGES ON chatbot.* TO 'openmrs'@'%' IDENTIFIED BY 'openmrs';
+   FLUSH PRIVILEGES;
+   EXIT;
+   ```
+
+3. **Verify Connection**:
+   ```bash
+   mysql -u openmrs -p -h 127.0.0.1 -P 3308 --protocol=TCP chatbot
+   ```
+   Enter password: `openmrs`
+
+## 🚀 Setup OpenMRS Server
+
+1. **Run SDK Setup**:
+   ```bash
+   mvn openmrs-sdk:setup
+   ```
+
+2. **Answer Prompts**:
+   - **Server ID**: `chatbot`
+   - **Distribution**: `3 (Platform)`
+   - **OpenMRS Version**: `2.7.3`
+   - **Port**: `8080`
+   - **Database Option**: `3 (Existing Docker container)`
+   - **Container**: `1 (openmrs-sdk-mysql-v8-4-1)`
+   - **Database Credentials**:
+     - Username: `openmrs`
+     - Password: `openmrs`
 
 3. **Configure `openmrs-runtime.properties`**:
    ```bash
-   cat << EOF > ~/openmrs/server4/openmrs-runtime.properties
+   cat << EOF > ~/openmrs/chatbot/openmrs-runtime.properties
 connection.url=jdbc:mysql://127.0.0.1:3308/chatbot?autoReconnect=true&useUnicode=true&characterEncoding=UTF-8&sessionVariables=default_storage_engine=InnoDB
 connection.username=openmrs
 connection.password=openmrs
@@ -130,59 +138,140 @@ security.requireBasicAuthentication=false
 EOF
    ```
 
-### 4. Build and Deploy the Module
-```bash
-cd ~/openmrs/server2/openmrschatbot
-mvn clean install
-mkdir -p ~/openmrs/server4/modules
-cp omod/target/openmrschatbot*.omod ~/openmrs/server4/modules/
-```
-
-### 5. Run OpenMRS
-```bash
-export JAVA_HOME=$(/usr/libexec/java_home -v 11)
-export MAVEN_OPTS="-Xmx1024m"
-export OPENMRS_HOME=~/openmrs/server4
-cd ~/openmrs/server4
-mvn openmrs-sdk:run -DserverId=server4
-```
-
-### 6. Complete Setup Wizard
-- Open: [http://localhost:8080/openmrs/](http://localhost:8080/openmrs/)
-- Follow the wizard:
-  - **Database**: MySQL, URL: `jdbc:mysql://127.0.0.1:3308/chatbot?autoReconnect=true&useUnicode=true&characterEncoding=UTF-8`
-  - **Username**: `openmrs`
-  - **Password**: `openmrs`
-  - **Admin User**: `admin`/`Admin123`
-  - **Modules**: Ensure `openmrschatbot` is loaded.
-
-### 7. Verify
-- Login: [http://localhost:8080/openmrs/](http://localhost:8080/openmrs/) with `admin`/`Admin123`
-- Check module in **Admin** > **Manage Modules**
-
-## Contributing
-
-We welcome contributions to improve the `openmrschatbot` module!
-
-1. Fork the repository.
-2. Create a feature branch:
+4. **Add Dependencies**:
    ```bash
-   git checkout -b feature/your-feature
+   wget https://repo1.maven.org/maven2/mysql/mysql-connector-java/8.0.30/mysql-connector-java-8.0.30.jar -O ~/openmrs/chatbot/server/apache-tomcat/lib/mysql-connector-java-8.0.30.jar
+   chmod u+r ~/openmrs/chatbot/server/apache-tomcat/lib/mysql-connector-java-8.0.30.jar
+   mkdir -p ~/openmrs/chatbot/webapps/openmrs/WEB-INF/lib
+   cp ~/openmrs/chatbot/server/apache-tomcat/lib/mysql-connector-java-8.0.30.jar ~/openmrs/chatbot/webapps/openmrs/WEB-INF/lib/
+   wget https://repo1.maven.org/maven2/org/yaml/snakeyaml/1.33/snakeyaml-1.33.jar -O ~/openmrs/chatbot/server/apache-tomcat/lib/snakeyaml-1.33.jar
+   chmod u+r ~/openmrs/chatbot/server/apache-tomcat/lib/snakeyaml-1.33.jar
+   cp ~/openmrs/chatbot/server/apache-tomcat/lib/snakeyaml-1.33.jar ~/openmrs/chatbot/webapps/openmrs/WEB-INF/lib/
    ```
-3. Commit changes:
+
+## 🖥️ Launch OpenMRS
+
+1. **Start OpenMRS**:
    ```bash
-   git commit -m "Add your feature"
+   export JAVA_HOME=$(/usr/libexec/java_home -v 11)
+   export MAVEN_OPTS="-Xmx1024m"
+   export OPENMRS_HOME=~/openmrs/chatbot
+   cd ~/openmrs/chatbot
+   mvn openmrs-sdk:run -DserverId=chatbot
    ```
-4. Push to branch:
+
+2. **Complete Setup Wizard**:
+   - Open: [http://localhost:8080/openmrs/](http://localhost:8080/openmrs/)
+   - Follow the wizard:
+     - **Database**: MySQL
+     - **URL**: `jdbc:mysql://127.0.0.1:3308/chatbot?autoReconnect=true&useUnicode=true&characterEncoding=UTF-8`
+     - **Username**: `openmrs`
+     - **Password**: `openmrs`
+     - **Admin User**: `admin`/`Admin123`
+     - **Modules**: Ensure `openmrschatbot` is loaded
+     - Choose to create a new schema
+     - Click **Next** until complete
+
+3. **Verify**:
+   - Login: [http://localhost:8080/openmrs/](http://localhost:8080/openmrs/) with `admin`/`Admin123`
+   - Check module in **Admin** > **Manage Modules**
+
+## 🧱 Build and Deploy Module
+
+1. **Clone Repository** (if not already done):
    ```bash
-   git push origin feature/your-feature
+   git clone https://github.com/your-username/openmrschatbot.git
+   cd openmrschatbot
    ```
-5. Open a pull request on GitHub.
+
+2. **Build Module**:
+   ```bash
+   mvn clean install
+   ```
+
+3. **Deploy Module**:
+   ```bash
+   mkdir -p ~/openmrs/chatbot/modules
+   cp omod/target/openmrschatbot*.omod ~/openmrs/chatbot/modules/
+   ```
+
+4. **Restart OpenMRS**:
+   ```bash
+   cd ~/openmrs/chatbot
+   lsof -i :8080
+   kill -9 $(lsof -t -i :8080)
+   mvn openmrs-sdk:run -DserverId=chatbot
+   ```
+
+## 🔁 Restarting in the Future
+
+1. **Start Docker Desktop**:
+   Ensure it’s running (check the top menu bar).
+
+2. **Start MySQL Container**:
+   ```bash
+   docker start openmrs-sdk-mysql-v8-4-1
+   ```
+
+3. **Run OpenMRS**:
+   ```bash
+   export JAVA_HOME=$(/usr/libexec/java_home -v 11)
+   export MAVEN_OPTS="-Xmx1024m"
+   export OPENMRS_HOME=~/openmrs/chatbot
+   cd ~/openmrs/chatbot
+   mvn openmrs-sdk:run -DserverId=chatbot
+   ```
 
 ### Development Workflow
 - **Build**: `mvn clean package`
-- **Deploy**: Copy `omod/target/openmrschatbot*.omod` to `~/openmrs/server4/modules/`
+- **Deploy**: Copy `omod/target/openmrschatbot*.omod` to `~/openmrs/chatbot/modules/`
 - **Format Code**: Use Spotless:
   ```bash
   mvn spotless:apply
-  mvn spotless
+  mvn spotless:check
+  ```
+
+## 🛠️ Troubleshooting
+
+### MySQL Connection Error
+- **Issue**: `ERROR 2002 (HY000): Can't connect to local MySQL server through socket`
+- **Fix**:
+  - Ensure container is running:
+    ```bash
+    docker ps -a | grep openmrs-sdk-mysql-v8-4-1
+    docker start openmrs-sdk-mysql-v8-4-1
+    ```
+  - Use TCP:
+    ```bash
+    mysql -u openmrs -p -h 127.0.0.1 -P 3308 --protocol=TCP chatbot
+    ```
+
+### Liquibase Schema Error
+- **Issue**: `Unknown column 'retired_reason' in 'location_tag'`
+- **Fix**:
+  - Reset database:
+    ```bash
+    mysql -u root -p -h 127.0.0.1 -P 3308 --protocol=TCP
+    ```
+    ```sql
+    DROP DATABASE chatbot;
+    CREATE DATABASE chatbot;
+    GRANT ALL PRIVILEGES ON chatbot.* TO 'openmrs'@'172.17.0.1' IDENTIFIED BY 'openmrs';
+    GRANT ALL PRIVILEGES ON chatbot.* TO 'openmrs'@'%' IDENTIFIED BY 'openmrs';
+    FLUSH PRIVILEGES;
+    ```
+
+### General Issues
+- **Logs**:
+  ```bash
+  tail -f ~/openmrs/chatbot/server/apache-tomcat/logs/catalina.out
+  ```
+- **Port Conflicts**:
+  ```bash
+  lsof -i :8080
+  kill -9 $(lsof -t -i :8080)
+  ```
+- **Resources**:
+  - [OpenMRS Documentation](https://wiki.openmrs.org/)
+  - [OpenMRS Community](https://talk.openmrs.org/)
+  - [GitHub Issues](https://github.com/your-username/openmrschatbot/issues)

@@ -7,7 +7,7 @@ Welcome to the **OpenMRS Chatbot Module**! This module enhances **OpenMRS Platfo
 - [Setup MySQL Container](#-setup-mysql-container)
 - [Setup OpenMRS Server](#-setup-openmrs-server)
 - [Launch OpenMRS](#-launch-openmrs)
-- [Build and Deploy Module](#-chatbot-main)
+- [Build and Deploy Module](./chatbot-main)
 - [Restarting in the Future](#-restarting-in-the-future)
 - [Contributing](#-contributing)
 - [Troubleshooting](#-troubleshooting)

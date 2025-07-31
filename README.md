@@ -7,7 +7,7 @@ Welcome to the **OpenMRS Chatbot Module**! This module enhances **OpenMRS Platfo
 - [Setup MySQL Container](#-setup-mysql-container)
 - [Setup OpenMRS Server](#-setup-openmrs-server)
 - [Launch OpenMRS](#-launch-openmrs)
-- [Build and Deploy Module](#-build-and-deploy-module)
+- [Build and Deploy Module](#/chatbot-main)
 - [Restarting in the Future](#-restarting-in-the-future)
 - [Contributing](#-contributing)
 - [Troubleshooting](#-troubleshooting)
@@ -176,32 +176,6 @@ EOF
    - Login: [http://localhost:8080/openmrs/](http://localhost:8080/openmrs/) with `admin`/`Admin123`
    - Check module in **Admin** > **Manage Modules**
 
-## 🧱 Build and Deploy Module
-
-1. **Clone Repository** (if not already done):
-   ```bash
-   git clone https://github.com/ynzhuang/Openmrs-chatbot.git
-   cd Openmrs-chatbot/chatbot-main
-   ```
-
-2. **Build Module**:
-   ```bash
-   mvn clean install
-   ```
-
-3. **Deploy Module**:
-   ```bash
-   mkdir -p ~/openmrs/chatbot/modules
-   cp omod/target/openmrschatbot*.omod ~/openmrs/chatbot/modules/
-   ```
-
-4. **Restart OpenMRS**:
-   ```bash
-   cd ~/openmrs/chatbot
-   lsof -i :8080
-   kill -9 $(lsof -t -i :8080)
-   mvn openmrs-sdk:run -DserverId=chatbot
-   ```
 
 ## 🔁 Restarting in the Future
 

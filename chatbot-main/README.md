@@ -1,50 +1,35 @@
-${moduleName}
-==========================
+# 🛠️ OpenMRS Chatbot Module
 
-Description
------------
-This is a very basic module which can be used as a starting point in creating a new module.
+Welcome to the **OpenMRS Chatbot Module**! This module enhances **OpenMRS Platform 2.7.3** with chatbot functionality for healthcare informatics. It serves as a starting point for creating new OpenMRS modules. This `README.md` provides instructions to build, deploy, and contribute to the module, located in the `chatbot-main/openmrschatbot` subfolder.
 
-Building from Source
---------------------
-You will need to have Java 1.6+ and Maven 2.x+ installed.  Use the command 'mvn package' to 
-compile and package the module.  The .omod file will be in the omod/target folder.
+**Note**: This guide assumes you have set up OpenMRS Platform 2.7.3 as per the root [README.md](https://github.com/ynzhuang/Openmrs-chatbot/blob/main/README.md). If you encounter issues with building or deploying, please report them at [GitHub Issues](https://github.com/ynzhuang/Openmrs-chatbot/issues).
 
-Alternatively you can add the snippet provided in the [Creating Modules](https://wiki.openmrs.org/x/cAEr) page to your 
-omod/pom.xml and use the mvn command:
+## 📋 Table of Contents
+- [Description](#-description)
+- [Installation](#-installation)
 
-    mvn package -P deploy-web -D deploy.path="../../openmrs-1.8.x/webapp/src/main/webapp"
+## 📝 Description
 
-It will allow you to deploy any changes to your web 
-resources such as jsp or js files without re-installing the module. The deploy path says 
-where OpenMRS is deployed.
+This is a basic module that can be used as a starting point for creating new OpenMRS modules. It provides a foundation for adding chatbot functionality to enhance healthcare informatics in OpenMRS.
 
-Running Spotless
-----------------
-This project uses Spotless for code formatting. Spotless is embedded in the build process, so when you run `mvn clean package`, Spotless will automatically format your code according to the project's style guidelines.
+## 📥 Installation
 
-If you want to run Spotless separately, you can use the following Maven commands:
+ **Install the .omod File**:
+   - Option 1: Via OpenMRS UI:
+     - Open [http://localhost:8080/openmrs/](http://localhost:8080/openmrs/).
+     - Go to **Admin** > **Manage Modules**.
+     - Upload `chatbot-main/openmrschatbot/omod/target/openmrschatbot*.omod`.
+   - Option 2: Manual Copy:
+     ```bash
+     cp chatbot-main/openmrschatbot/omod/target/openmrschatbot*.omod ~/.OpenMRS/modules/
+     ```
+     Restart OpenMRS:
+     ```bash
+     cd ~/openmrs/chatbot
+     mvn openmrs-sdk:run -DserverId=chatbot
+     ```
 
-To apply the formatting:
+2. **Verify**:
+   - Login at [http://localhost:8080/openmrs/](http://localhost:8080/openmrs/) with `admin`/`Admin123`.
+   - Confirm the module is listed in **Admin** > **Manage Modules**.
 
-    mvn spotless:apply
-
-This will automatically format your code according to the project's style guidelines. It's recommended to run this command before committing your changes.
-
-To check if your code adheres to the style guidelines without making any changes, you can run:
-
-    mvn spotless:check
-
-If this command reports any violations, you can then run `mvn spotless:apply` to fix them.
-
-Remember, in most cases, you don't need to run these commands separately as Spotless will run automatically during the build process with `mvn clean package`.
-
-Installation
-------------
-1. Build the module to produce the .omod file.
-2. Use the OpenMRS Administration > Manage Modules screen to upload and install the .omod file (chatbot-main/omod/target/chatbot-1.0.0-SNAPSHOT.omod).
-
-If uploads are not allowed from the web (changable via a runtime property), you can drop the omod
-into the ~/.OpenMRS/modules folder.  (Where ~/.OpenMRS is assumed to be the Application 
-Data Directory that the running openmrs is currently using.)  After putting the file in there 
-simply restart OpenMRS/tomcat and the module will be loaded and started.

@@ -33,3 +33,5 @@ This is a basic module that can be used as a starting point for creating new Ope
    - Login at [http://localhost:8080/openmrs/](http://localhost:8080/openmrs/) with `admin`/`Admin123`.
    - Confirm the module is listed in **Admin** > **Manage Modules**.
 
+2. **Run**:
+3.  - [http://localhost:8080/openmrs/module/chatbot/chatbot.form](http://localhost:8080/openmrs/module/chatbot/chatbot.form)

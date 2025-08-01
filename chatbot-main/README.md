@@ -34,4 +34,4 @@ This is a basic module that can be used as a starting point for creating new Ope
    - Confirm the module is listed in **Admin** > **Manage Modules**.
 
 2. **Run**:
-3.  - [http://localhost:8080/openmrs/module/chatbot/chatbot.form](http://localhost:8080/openmrs/module/chatbot/chatbot.form)
+   - [http://localhost:8080/openmrs/module/chatbot/chatbot.form](http://localhost:8080/openmrs/module/chatbot/chatbot.form)

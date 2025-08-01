@@ -9,9 +9,7 @@ Welcome to the **OpenMRS Chatbot Module**! This module enhances **OpenMRS Platfo
 - [Launch OpenMRS](#-launch-openmrs)
 - [Build and Deploy Module](./chatbot-main)
 - [Restarting in the Future](#-restarting-in-the-future)
-- [Contributing](#-contributing)
 - [Troubleshooting](#-troubleshooting)
-- [License](#-license)
 
 ## 📦 Prerequisites
 
@@ -196,34 +194,6 @@ EOF
    mvn openmrs-sdk:run -DserverId=chatbot
    ```
 
-## 🤝 Contributing
-
-We welcome contributions to enhance the `openmrschatbot` module!
-
-1. Fork the repository.
-2. Create a feature branch:
-   ```bash
-   git checkout -b feature/your-feature
-   ```
-3. Commit changes:
-   ```bash
-   git commit -m "Add your feature"
-   ```
-4. Push to branch:
-   ```bash
-   git push origin feature/your-feature
-   ```
-5. Open a pull request on GitHub.
-
-### Development Workflow
-- **Build**: `mvn clean package`
-- **Deploy**: Copy `chatbot-main/omod/target/openmrschatbot*.omod` to `~/openmrs/chatbot/modules/`
-- **Format Code**: Use Spotless:
-  ```bash
-  mvn spotless:apply
-  mvn spotless:check
-  ```
-
 ## 🛠️ Troubleshooting
 
 ### MySQL Connection Error
@@ -269,5 +239,3 @@ We welcome contributions to enhance the `openmrschatbot` module!
   - [OpenMRS Community](https://talk.openmrs.org/)
   - [GitHub Issues](https://github.com/ynzhuang/Openmrs-chatbot/issues)
 
-## 📜 License
-[MIT License](LICENSE)

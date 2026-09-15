@@ -7,9 +7,15 @@ import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.util.EntityUtils;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+
 import java.nio.charset.StandardCharsets;
 
 public class OpenRouterClient {
+	
+	private static final ObjectMapper MAPPER = new ObjectMapper();
 	
 	private final String apiKey;
 	
@@ -32,11 +38,7 @@ public class OpenRouterClient {
 			post.setHeader("X-Title", "OpenMRS Chatbot");
 			post.setHeader("Content-Type", "application/json");
 			
-			String body = "{\n" + "  \"model\": \"" + model + "\",\n" + "  \"messages\": [\n"
-			        + "    {\"role\":\"system\",\"content\": " + toJson(system) + "},\n"
-			        + "    {\"role\":\"user\",\"content\": " + toJson(user) + "}\n" + "  ],\n" + "  \"temperature\": 0\n"
-			        + "}";
-			post.setEntity(new StringEntity(body, StandardCharsets.UTF_8));
+			post.setEntity(new StringEntity(buildRequestBody(system, user), StandardCharsets.UTF_8));
 			
 			CloseableHttpResponse resp = http.execute(post);
 			try {
@@ -55,9 +57,29 @@ public class OpenRouterClient {
 		}
 	}
 	
-	private static String toJson(String s) {
-		if (s == null)
-			return "\"\"";
-		return "\"" + s.replace("\\", "\\\\").replace("\"", "\\\"") + "\"";
+	/**
+	 * Serialize the chat-completions request with Jackson rather than by hand.
+	 *
+	 * The previous implementation concatenated the JSON and escaped only
+	 * backslash and double-quote, so any control character in the input --
+	 * most commonly a newline in a question pasted out of a clinical note --
+	 * produced a body that is not valid JSON, and OpenRouter rejected the
+	 * call. Jackson escapes the full set.
+	 */
+	private String buildRequestBody(String system, String user) throws Exception {
+		ObjectNode root = MAPPER.createObjectNode();
+		root.put("model", model);
+		ArrayNode messages = root.putArray("messages");
+		messages.add(message("system", system));
+		messages.add(message("user", user));
+		root.put("temperature", 0);
+		return MAPPER.writeValueAsString(root);
+	}
+	
+	private ObjectNode message(String role, String content) {
+		ObjectNode node = MAPPER.createObjectNode();
+		node.put("role", role);
+		node.put("content", content == null ? "" : content);
+		return node;
 	}
 }

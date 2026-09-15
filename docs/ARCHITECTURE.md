@@ -166,22 +166,27 @@ The chatbot logic lives entirely in `omod/.../web/controller/`:
 
 Honest notes for whoever reads the code next:
 
-- **`OpenRouterClient` builds its request JSON by string concatenation**, and
-  its `toJson()` escapes only `\` and `"`. A question containing a control
-  character (a newline pasted from a note) produces malformed JSON and the
-  call fails. It should use the Jackson `ObjectMapper` that is already a
-  dependency.
 - **`buildRoutingInstruction()` emits literal `\n`** — the Java source has
-  `"\\n"`, so the prompt contains the two characters rather than a newline.
-  Models tolerate it; it is still not what was meant.
+  `"\\n"`, so the prompt contains those two characters rather than a
+  newline. Models tolerate it; it is still not what was meant.
 - **The router sees the whole catalog on every request.** At 20 scenarios
   that is fine. It grows linearly, and there is no retrieval step.
 - **No caching.** Identical questions re-route, re-execute, and re-compose.
 - **No request timeouts** on either the REST or the model calls.
-- **`ScenarioController` carries dead code** — unused `trimRight()` and
-  `encode()` helpers, and single-argument overloads of the routing and
-  answer methods that nothing calls.
 - **Test coverage is thin.** `AdminListExtensionTest` plus the generated
   service/DAO tests; the routing, resolution, and execution paths have no
   unit tests. `validate_scenarios.py` covers the catalog as data, which is
   where the runtime failures actually come from, but it is not a substitute.
+
+### Recently addressed
+
+- **Request JSON is now built with Jackson.** `OpenRouterClient` previously
+  concatenated its body and escaped only `\` and `"`, so any control
+  character in the input produced a body that was not valid JSON and the
+  call failed. A newline — the common case, a question pasted out of a
+  clinical note — was enough to break it. Verified: under the old escaper a
+  newline, a tab, and a `` each yielded unparseable JSON; all three
+  round-trip cleanly now.
+- **Dead code removed from `ScenarioController`** — the unused `trimRight()`
+  and `encode()` helpers (`ScenarioExecutor` has its own live copies) and
+  the two single-argument overloads that nothing called.

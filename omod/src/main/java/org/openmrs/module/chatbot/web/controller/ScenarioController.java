@@ -310,10 +310,6 @@ public class ScenarioController {
 		return instruction.toString();
 	}
 	
-	private List<String> callOpenRouterForRouting(String question, String instruction, JsonNode scenarios, int max) {
-		return callOpenRouterForRouting(question, instruction, scenarios, max, null);
-	}
-	
 	private List<String> callOpenRouterForRouting(String question, String instruction, JsonNode scenarios, int max,
 	        java.util.List<java.util.Map<String, Object>> debug) {
 		try {
@@ -361,10 +357,6 @@ public class ScenarioController {
 			}
 			return null;
 		}
-	}
-	
-	private String callOpenRouterForAnswer(String system, String userJson) {
-		return callOpenRouterForAnswer(system, userJson, null);
 	}
 	
 	private String callOpenRouterForAnswer(String system, String userJson,
@@ -526,16 +518,5 @@ public class ScenarioController {
 				}
 			}
 		}
-	}
-	
-	private static String trimRight(String s) {
-		
-		if (s == null)
-			return "";
-		return s.endsWith("/") ? s.substring(0, s.length() - 1) : s;
-	}
-	
-	private static String encode(String v) {
-		return v.replace(" ", "%20");
 	}
 }

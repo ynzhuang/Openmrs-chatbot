@@ -1,0 +1,407 @@
+{
+  "version": 1,
+  "basePath": "/openmrs/ws/rest/v1",
+  "scenarios": [
+    {
+      "name": "patient_profile_full",
+      "title": "Full patient profile (demographics and identifiers)",
+      "description": "Retrieve full patient including person demographics and identifiers.",
+      "examples": [
+        "Show patient profile",
+        "Display demographics",
+        "Get patient details"
+      ],
+      "method": "GET",
+      "path": "/patient/{uuid}",
+      "pathParams": {"uuid": "${patient.uuid}"},
+      "queryParams": {"v": "${v|full}"},
+      "headers": {"Accept": "application/json"},
+      "requiredContext": ["patient.uuid"],
+      "notes": "Use v=full; parse person names, addresses, attributes, identifiers."
+    },
+
+    {
+      "name": "patient_identifiers",
+      "title": "List patient identifiers",
+      "description": "Return patient identifiers with types and locations using a custom representation.",
+      "examples": [
+        "Show patient identifiers",
+        "List MRNs for this patient"
+      ],
+      "method": "GET",
+      "path": "/patient/{uuid}",
+      "pathParams": {"uuid": "${patient.uuid}"},
+      "queryParams": {
+        "v": "custom:(uuid,identifiers:(identifier,identifierType:(uuid,name),preferred,location:(uuid,name)))"
+      },
+      "headers": {"Accept": "application/json"},
+      "requiredContext": ["patient.uuid"],
+      "notes": "Tailored to return only identifiers."
+    },
+
+    {
+      "name": "current_medications",
+      "title": "Current medications for a patient",
+      "description": "Return active medication orders (drug orders) for the patient.",
+      "examples": [
+        "What medications is this patient currently on?",
+        "List current meds",
+        "Show active drug orders"
+      ],
+      "method": "GET",
+      "path": "/order",
+      "pathParams": {},
+      "queryParams": {
+        "patient": "${patient.uuid}",
+        "t": "drugorder",
+        "isStopped": "false",
+        "excludeCanceledAndExpired": "true",
+        "includeVoided": "false",
+        "limit": "${limit|50}",
+        "v": "${v|default}"
+      },
+      "headers": {"Accept": "application/json"},
+      "requiredContext": ["patient.uuid"],
+      "notes": "Uses /order with t=drugorder and patient filter; flags ensure only active, non-voided, non-expired orders."
+    },
+
+    {
+      "name": "drug_orders_history",
+      "title": "Medication orders history",
+      "description": "Return recent medication orders (any status) for the patient.",
+      "examples": ["Medication history", "Past drug orders"],
+      "method": "GET",
+      "path": "/order",
+      "pathParams": {},
+      "queryParams": {
+        "patient": "${patient.uuid}",
+        "t": "drugorder",
+        "limit": "${limit|100}",
+        "v": "${v|default}"
+      },
+      "headers": {"Accept": "application/json"},
+      "requiredContext": ["patient.uuid"],
+      "notes": "Include stopped/expired orders for a more complete history. Add date filters if needed."
+    },
+
+    {
+      "name": "test_orders_recent",
+      "title": "Recent test orders",
+      "description": "Return recent test orders for the patient.",
+      "examples": ["Recent lab orders", "Latest test orders"],
+      "method": "GET",
+      "path": "/order",
+      "pathParams": {},
+      "queryParams": {
+        "patient": "${patient.uuid}",
+        "t": "testorder",
+        "limit": "${limit|50}",
+        "v": "${v|default}"
+      },
+      "headers": {"Accept": "application/json"},
+      "requiredContext": ["patient.uuid"],
+      "notes": "Use additional filters like concepts or activation dates when needed."
+    },
+
+    {
+      "name": "orders_by_concepts",
+      "title": "Orders by concepts",
+      "description": "Return orders for specified concept(s) for the patient.",
+      "examples": ["Orders for glucose", "Orders for cholesterol"],
+      "method": "GET",
+      "path": "/order",
+      "pathParams": {},
+      "queryParams": {
+        "patient": "${patient.uuid}",
+        "concepts": "${concept.uuids|csv}",
+        "limit": "${limit|50}",
+        "v": "${v|default}"
+      },
+      "headers": {"Accept": "application/json"},
+      "requiredContext": ["patient.uuid"],
+      "notes": "Provide one or more concept UUIDs (comma-separated). Use concept resolver first if only names are known."
+    },
+
+    {
+      "name": "recent_vitals_summary",
+      "title": "Recent vitals: blood pressure, temperature, weight",
+      "description": "Fetch the most recent encounters for a patient and let the AI extract BP, temperature, and weight from nested obs.",
+      "examples": [
+        "retrieve recent blood pressure, temperature, weight",
+        "show last vitals",
+        "latest BP and temp"
+      ],
+      "method": "GET",
+      "path": "/encounter",
+      "pathParams": {},
+      "queryParams": {
+        "patient": "${patient.uuid}",
+        "order": "desc",
+        "limit": "${limit|5}",
+        "v": "${v|full}"
+      },
+      "headers": {"Accept": "application/json"},
+      "requiredContext": ["patient.uuid"],
+      "notes": "Full rep includes observations. AI should parse obs for systolic/diastolic BP, temperature, and weight."
+    },
+
+    {
+      "name": "bp_trend",
+      "title": "Blood pressure trend",
+      "description": "Fetch recent encounters with BP observations for trend analysis.",
+      "examples": ["BP trend", "blood pressure over time"],
+      "method": "GET",
+      "path": "/encounter",
+      "pathParams": {},
+      "queryParams": {
+        "patient": "${patient.uuid}",
+        "obsConcept": "${concept.bp.uuid|resolve:Systolic Blood Pressure}",
+        "order": "desc",
+        "limit": "${limit|20}",
+        "v": "${v|full}"
+      },
+      "headers": {"Accept": "application/json"},
+      "requiredContext": ["patient.uuid"],
+      "notes": "Use resolver to map concept names to UUIDs. Extract systolic/diastolic from encounter obs."
+    },
+
+    {
+      "name": "weight_trend",
+      "title": "Weight trend",
+      "description": "Fetch recent encounters with weight observations for trend analysis.",
+      "examples": ["weight over time", "recent weights"],
+      "method": "GET",
+      "path": "/encounter",
+      "pathParams": {},
+      "queryParams": {
+        "patient": "${patient.uuid}",
+        "obsConcept": "${concept.weight.uuid|resolve:Weight}",
+        "order": "desc",
+        "limit": "${limit|20}",
+        "v": "${v|full}"
+      },
+      "headers": {"Accept": "application/json"},
+      "requiredContext": ["patient.uuid"],
+      "notes": "Use local concept dictionary naming."
+    },
+
+    {
+      "name": "temperature_trend",
+      "title": "Temperature trend",
+      "description": "Fetch recent encounters with temperature observations for trend analysis.",
+      "examples": ["temperature over time", "recent temps"],
+      "method": "GET",
+      "path": "/encounter",
+      "pathParams": {},
+      "queryParams": {
+        "patient": "${patient.uuid}",
+        "obsConcept": "${concept.temperature.uuid|resolve:Temperature}",
+        "order": "desc",
+        "limit": "${limit|20}",
+        "v": "${v|full}"
+      },
+      "headers": {"Accept": "application/json"},
+      "requiredContext": ["patient.uuid"],
+      "notes": "Units may vary; AI should normalize if needed."
+    },
+
+    {
+      "name": "last_visit_summary",
+      "title": "Summarize the last clinic visit",
+      "description": "Fetch the most recent encounter for the patient and summarize diagnoses, orders, notes, and providers.",
+      "examples": [
+        "Summarize the last clinic visit for this patient",
+        "what happened in the last visit?",
+        "last encounter summary"
+      ],
+      "method": "GET",
+      "path": "/encounter",
+      "pathParams": {},
+      "queryParams": {
+        "patient": "${patient.uuid}",
+        "order": "desc",
+        "limit": "1",
+        "v": "${v|full}"
+      },
+      "headers": {"Accept": "application/json"},
+      "requiredContext": ["patient.uuid"],
+      "notes": "Optionally add encounterType to narrow to visit-related types if needed. Full rep includes obs, orders, providers."
+    },
+
+    {
+      "name": "patient_encounters_recent",
+      "title": "Recent encounters",
+      "description": "List recent encounters for the patient.",
+      "examples": ["Show recent encounters", "List last 10 encounters"],
+      "method": "GET",
+      "path": "/encounter",
+      "pathParams": {},
+      "queryParams": {
+        "patient": "${patient.uuid}",
+        "order": "desc",
+        "limit": "${limit|10}",
+        "v": "${v|default}"
+      },
+      "headers": {"Accept": "application/json"},
+      "requiredContext": ["patient.uuid"],
+      "notes": "General-purpose encounter listing."
+    },
+
+    {
+      "name": "patient_encounters_by_type",
+      "title": "Encounters by type",
+      "description": "List encounters by type for the patient.",
+      "examples": ["Clinic visits only", "Lab encounters for this patient"],
+      "method": "GET",
+      "path": "/encounter",
+      "pathParams": {},
+      "queryParams": {
+        "patient": "${patient.uuid}",
+        "encounterType": "${encounterType.uuid}",
+        "order": "desc",
+        "limit": "${limit|20}",
+        "v": "${v|default}"
+      },
+      "headers": {"Accept": "application/json"},
+      "requiredContext": ["patient.uuid", "encounterType.uuid"],
+      "notes": "Resolve encounterType UUID externally if only a name is provided."
+    },
+
+    {
+      "name": "patient_encounters_by_date_range",
+      "title": "Encounters within date range",
+      "description": "List encounters for the patient within a date range.",
+      "examples": ["Encounters this year", "Visits from Jan to Mar"],
+      "method": "GET",
+      "path": "/encounter",
+      "pathParams": {},
+      "queryParams": {
+        "patient": "${patient.uuid}",
+        "fromdate": "${fromdate}",
+        "todate": "${todate}",
+        "order": "desc",
+        "limit": "${limit|50}",
+        "v": "${v|default}"
+      },
+      "headers": {"Accept": "application/json"},
+      "requiredContext": ["patient.uuid", "fromdate", "todate"],
+      "notes": "Dates should be ISO (YYYY-MM-DD)."
+    },
+
+    {
+      "name": "observations_by_concept_name",
+      "title": "Recent observations for a concept",
+      "description": "Fetch recent encounters filtered by a concept and extract observation values.",
+      "examples": ["Recent glucose results", "Latest creatinine"],
+      "method": "GET",
+      "path": "/encounter",
+      "pathParams": {},
+      "queryParams": {
+        "patient": "${patient.uuid}",
+        "obsConcept": "${concept.uuid|resolve}",
+        "order": "desc",
+        "limit": "${limit|10}",
+        "v": "${v|full}"
+      },
+      "headers": {"Accept": "application/json"},
+      "requiredContext": ["patient.uuid", "concept.uuid"],
+      "notes": "Use 'resolve' step to map concept name to UUID via /concept?q=... before calling this scenario."
+    },
+
+    {
+      "name": "observations_by_concept_in_date_range",
+      "title": "Observations for a concept within date range",
+      "description": "Fetch encounters filtered by a concept for a given date range and extract observation values.",
+      "examples": ["WBC this month", "HbA1c last year"],
+      "method": "GET",
+      "path": "/encounter",
+      "pathParams": {},
+      "queryParams": {
+        "patient": "${patient.uuid}",
+        "obsConcept": "${concept.uuid}",
+        "fromdate": "${fromdate}",
+        "todate": "${todate}",
+        "order": "desc",
+        "limit": "${limit|50}",
+        "v": "${v|full}"
+      },
+      "headers": {"Accept": "application/json"},
+      "requiredContext": ["patient.uuid", "concept.uuid", "fromdate", "todate"],
+      "notes": "Ensure concept UUID is resolved first."
+    },
+
+    {
+      "name": "recent_lab_results_wbc",
+      "title": "Recent WBC lab results",
+      "description": "Fetch encounters filtered by observations matching the WBC concept, then let AI extract numeric results and dates.",
+      "examples": [
+        "What are the recent test results on WBC",
+        "latest white blood cell count",
+        "recent WBC labs"
+      ],
+      "method": "GET",
+      "path": "/encounter",
+      "pathParams": {},
+      "queryParams": {
+        "patient": "${patient.uuid}",
+        "obsConcept": "${concept.wbc.uuid|resolve:WBC}",
+        "order": "desc",
+        "limit": "${limit|10}",
+        "v": "${v|full}"
+      },
+      "headers": {"Accept": "application/json"},
+      "requiredContext": ["patient.uuid"],
+      "notes": "Resolve WBC concept if not known; parse obs values from encounters."
+    },
+
+    {
+      "name": "create_patient_allergy",
+      "title": "Create patient allergy",
+      "description": "Create an allergy subresource for the patient.",
+      "examples": ["Add penicillin allergy", "Record new allergy"],
+      "method": "POST",
+      "path": "/patient/{parent-uuid}/allergy",
+      "pathParams": {"parent-uuid": "${patient.uuid}"},
+      "queryParams": {},
+      "body": {
+        "allergen": {"uuid": "${allergen.concept.uuid}"},
+        "severity": {"uuid": "${severity.concept.uuid}"},
+        "comment": "${comment|}",
+        "reactions": [
+          {"reaction": {"uuid": "${reaction.concept.uuid}"}}
+        ]
+      },
+      "headers": {"Accept": "application/json", "Content-Type": "application/json"},
+      "requiredContext": ["patient.uuid", "allergen.concept.uuid", "severity.concept.uuid", "reaction.concept.uuid"],
+      "notes": "Requires concept UUIDs for allergen/severity/reactions; resolve with /concept if needed. All four are in requiredContext because the body templates them unconditionally -- omitting one previously POSTed an allergy with an empty uuid instead of failing the precondition check."
+    },
+
+    {
+      "name": "get_patient_allergy_by_uuid",
+      "title": "Get patient allergy by UUID",
+      "description": "Fetch a specific patient allergy subresource by UUID.",
+      "examples": ["Show a recorded allergy"],
+      "method": "GET",
+      "path": "/patient/{parent-uuid}/allergy/{uuid}",
+      "pathParams": {"parent-uuid": "${patient.uuid}", "uuid": "${allergy.uuid}"},
+      "queryParams": {"v": "${v|default}"},
+      "headers": {"Accept": "application/json"},
+      "requiredContext": ["patient.uuid", "allergy.uuid"],
+      "notes": "List-all endpoint may not be present in this swagger; use by-uuid retrieval when known."
+    },
+
+    {
+      "name": "resolve_concept_uuid_by_name",
+      "title": "Resolve concept UUID by name",
+      "description": "Utility: resolve a concept UUID by searching its name.",
+      "examples": ["Find WBC concept", "Get UUID for HbA1c"],
+      "method": "GET",
+      "path": "/concept",
+      "pathParams": {},
+      "queryParams": {"q": "${concept.name}", "limit": "${limit|5}", "v": "${v|ref}"},
+      "headers": {"Accept": "application/json"},
+      "requiredContext": ["concept.name"],
+      "notes": "Use first/highest-ranked match or apply additional disambiguation."
+    }
+  ]
+}

@@ -1,241 +1,175 @@
-# 🛠️ OpenMRS Chatbot Module
+<div align="center">
 
-Welcome to the **OpenMRS Chatbot Module**! This module enhances **OpenMRS Platform 2.7.3** with chatbot functionality for healthcare informatics. This guide provides **macOS-specific** instructions to set up the development environment, run OpenMRS, and contribute to the `openmrschatbot` module, located in the `chatbot-main` subfolder. It uses **Docker** for MySQL and the **OpenMRS SDK** for server management.
+# 💬 OpenMRS Chatbot
 
-## 📋 Table of Contents
-- [Prerequisites](#-prerequisites)
-- [Setup MySQL Container](#-setup-mysql-container)
-- [Setup OpenMRS Server](#-setup-openmrs-server)
-- [Launch OpenMRS](#-launch-openmrs)
-- [Build and Deploy Module](./chatbot-main)
-- [Restarting in the Future](#-restarting-in-the-future)
-- [Troubleshooting](#-troubleshooting)
+### Ask a patient's chart a question in plain English — and get an answer grounded in the live OpenMRS REST API.
 
-## 📦 Prerequisites
+An OpenMRS module that turns a clinical question into a *routed* set of REST calls against the patient's record, then composes the answer from what the API actually returned.
 
-Install these tools on your Mac using **Terminal** (open via Launchpad or Spotlight Search).
+![platform](https://img.shields.io/badge/platform-OpenMRS%20module-1f6feb)
+![language](https://img.shields.io/badge/language-Java%208%20·%20Spring%20MVC-b07219)
+![build](https://img.shields.io/badge/build-Maven%20multi--module-c71a36)
+![scenarios](https://img.shields.io/badge/scenarios-20%20declarative-16a34a)
+![license](https://img.shields.io/badge/license-MPL%202.0-lightgrey)
 
-### 1. Homebrew
-The macOS package manager.
+</div>
 
-```bash
-/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-echo 'eval "$(/opt/homebrew/bin/brew shellenv)"' >> ~/.zprofile
-eval "$(/opt/homebrew/bin/brew shellenv)"
-brew --version
+---
+
+Clinicians ask questions of a record in natural language — *"what is this patient on right now?"*, *"has their blood pressure been trending up?"* Answering means knowing which of dozens of OpenMRS REST endpoints to call, with which representation, and then reading the JSON that comes back.
+
+This module puts that behind a chat box. The design principle: **the model chooses and explains, but it never invents the data.** Every answer is composed from JSON the OpenMRS REST API actually returned during that request.
+
+## 🔁 How a question becomes an answer
+
+```mermaid
+flowchart LR
+    Q(["clinician's question"]) --> R["ROUTE<br/>model picks up to N scenarios<br/>from the catalog"]
+    R -. "no API key<br/>or call fails" .-> H["HEURISTIC<br/>keyword fallback"]
+    R --> E["EXECUTE<br/>run each scenario against<br/>the OpenMRS REST API"]
+    H --> E
+    E --> C["COMPOSE<br/>model answers strictly from<br/>the returned JSON"]
+    C --> A(["answer + raw results<br/>+ debug trace"])
 ```
 
-### 2. Java 11
-Required for OpenMRS 2.7.3.
+Three stages, each its own endpoint so they can be driven — and debugged — independently:
 
-```bash
-brew install --cask temurin@11
-echo 'export JAVA_HOME=$(/usr/libexec/java_home -v 11)' >> ~/.zshrc
-source ~/.zshrc
-java -version
+| Stage | Endpoint | What it does |
+|---|---|---|
+| **Route** | `POST module/chatbot/route` | Asks the model to pick up to `max` scenario names that would answer the question. Returns the choice *and* the instruction it was given. |
+| **Execute** | `POST module/chatbot/execute` | Runs named scenarios against the REST API, resolving `${...}` placeholders from request context. |
+| **Answer** | `POST module/chatbot/answer` | The whole pipeline end to end: route → execute → compose. |
+| *(catalog)* | `GET module/chatbot/scenarios` | Returns the scenario catalog as JSON. |
+
+## 🗂️ Scenarios are data, not code
+
+The 20 supported questions live in [`scenarios.json`](omod/src/main/resources/chatbot/scenarios.json) — a declarative catalog. Adding a capability is a JSON entry, not a Java change:
+
+```jsonc
+{
+  "name": "current_medications",
+  "title": "Current medications for a patient",
+  "description": "Return active medication orders (drug orders) for the patient.",
+  "examples": ["What medications is this patient currently on?", "List current meds"],
+  "method": "GET",
+  "path": "/order",
+  "queryParams": {
+    "patient": "${patient.uuid}",
+    "t": "drugorder",
+    "isStopped": "false",
+    "limit": "${limit|50}"
+  },
+  "requiredContext": ["patient.uuid"]
+}
 ```
 
-### 3. Docker Desktop
-Runs the MySQL database.
+That one file does three jobs at once:
 
-- Download: [Docker Desktop for Mac](https://www.docker.com/products/docker-desktop)
-- Install the `.dmg` file and start Docker Desktop (check for the Docker icon in the top menu bar).
-- Verify:
-  ```bash
-  docker --version
-  ```
+- **It is the router's menu.** `buildRoutingInstruction()` renders each entry's `title`, `description`, and `examples` into the prompt, so the model picks from a closed set of names instead of inventing an endpoint.
+- **It is the executor's plan.** `ScenarioExecutor` resolves `${patient.uuid}` and `${limit|50}` (the `|` supplies a default) from request context, builds the URL, and calls it.
+- **It is the precondition check.** `requiredContext` is verified *before* the call, so a scenario needing a patient UUID reports a clear error rather than issuing a malformed request.
 
-### 4. Maven
-Builds the module.
+The catalog currently covers demographics and identifiers, medication and test orders, vitals and their trends (BP, weight, temperature), encounters and visits, observations by concept and date range, lab results, and allergy read/create.
 
-```bash
-brew install maven
-mvn --version
+## 🛡️ Design properties worth noting
+
+**The model never fabricates clinical data.** The composing prompt receives only the JSON returned by the REST API, and is instructed to say it cannot determine an answer rather than fill a gap. The model's job is to *read* the response, not to recall facts about the patient.
+
+**It degrades instead of failing.** With no API key configured, or when the routing call errors, `chooseHeuristic()` falls back to keyword matching over scenario names and descriptions. The chat box keeps working without a model — with worse routing, not an error page.
+
+**It answers as the logged-in user.** The module propagates the caller's `JSESSIONID` to its REST calls, so OpenMRS's own privilege checks apply. The chatbot cannot read a record the user could not read themselves.
+
+**Every response carries a debug trace.** Each request returns a `debug` array recording whether model routing was attempted, whether it succeeded, and why not if it didn't (`missing_api_key`, the error text). Diagnosing a bad answer does not require server log access.
+
+**Identifiers resolve transparently.** Ask by MRN and `ensurePatientUuid()` resolves it to a UUID against the REST API before executing, trying both `?identifier=` and `?q=` lookups.
+
+> ### ⚠️ Patient data leaves your infrastructure
+> When an OpenRouter key is configured, the question **and the REST API responses — including patient data — are sent to a third-party model provider.** Do not point this at real patient records without a legal basis for that disclosure. Read [`SECURITY.md`](SECURITY.md) before any non-demo deployment.
+
+## 🚀 Build and install
+
+**Prerequisites:** JDK 8, Maven 3.x, and a running OpenMRS instance.
+
+```sh
+mvn clean package          # → omod/target/chatbot-1.0.0-SNAPSHOT.omod
 ```
 
-### 5. Git
-Version control.
+Install the `.omod` through **Administration → Manage Modules → Add or Upgrade Module**, or drop it into `~/.OpenMRS/modules/` and restart OpenMRS.
 
-```bash
-brew install git
-git --version
+For a local dev server via the [OpenMRS SDK](https://wiki.openmrs.org/display/docs/OpenMRS+SDK):
+
+```sh
+mvn openmrs-sdk:setup      # first time only
+mvn openmrs-sdk:run
 ```
 
-### 6. OpenMRS SDK
-Manages OpenMRS instances.
+### Configure the model
 
-```bash
-mvn org.openmrs.maven.plugins:openmrs-sdk-maven-plugin:setup-sdk
-mvn openmrs-sdk:help
+Two OpenMRS global properties, set under **Administration → Settings**:
+
+| Property | Required | Default |
+|---|---|---|
+| `chatbot.openrouter.apiKey` | for model routing + answers | *(none — falls back to heuristics)* |
+| `chatbot.openrouter.model` | no | `anthropic/claude-3.5-sonnet` |
+
+Leave the key unset to run with no model at all: routing falls back to keyword matching and the compose stage is skipped. That is also the only configuration in which **no patient data leaves your network**.
+
+## 🗃️ Project layout
+
+```
+openmrs-chatbot/
+├── api/                    core module: service, DAO, activator, config
+│   └── src/main/java/org/openmrs/module/chatbot/
+├── omod/                   web layer — controllers, JSP, module descriptor
+│   └── src/main/
+│        ├─ java/.../web/controller/
+│        │     ├─ ScenarioController.java    route · execute · answer endpoints
+│        │     ├─ ScenarioExecutor.java      scenario → REST call, ${} resolution
+│        │     ├─ OpenRouterClient.java      OpenRouter chat-completions client
+│        │     └─ OpenMRSChatbotController.java
+│        ├─ resources/chatbot/scenarios.json    ← the 20-scenario catalog
+│        └─ webapp/chatbot.jsp                  chat UI
+├── docs/                   OpenMRS REST/Core API notes + data model reference
+├── .github/workflows/      CI — Maven build, tests, format check
+└── pom.xml                 Maven multi-module parent
 ```
 
-### 7. IntelliJ IDEA (Optional)
-Recommended IDE.
+## 📚 Documentation
 
-```bash
-brew install --cask intellij-idea-ce
-```
+| Document | What's in it |
+|---|---|
+| [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) | the route → execute → compose pipeline, why scenarios are data, and known limitations |
+| [`SECURITY.md`](SECURITY.md) | PHI disclosure to the model provider, API-key handling, the privilege model |
+| [`CONTRIBUTING.md`](CONTRIBUTING.md) | build setup, how to add a scenario, code style |
+| [`docs/setup-Manual.md`](docs/setup-Manual.md) | local OpenMRS setup walkthrough |
+| [`docs/OpenMRS-REST-and-Core-API.md`](docs/OpenMRS-REST-and-Core-API.md) | consolidated REST + Core API reference |
+| [`docs/patient-api-catalog.md`](docs/patient-api-catalog.md) | patient-facing endpoint catalog |
 
-## 🐬 Setup MySQL Container
+## 🎨 Code style
 
-**Note**: Use the Mac **Terminal** app, not the Docker Desktop Terminal.
+The project ships an OpenMRS Eclipse formatter profile (`OpenMRSFormatter.xml`)
+and a Spotless configuration, but **Spotless does not currently work** and is
+not wired into the build or CI. Three defects compound:
 
-1. **Run MySQL Container**:
-   Creates a container named `openmrs-sdk-mysql-v8-4-1` for the `chatbot` database.
+1. The plugin is declared only in `<pluginManagement>` and never in any
+   module's `<build><plugins>`, so it never runs during `mvn clean package` —
+   contrary to what this README previously claimed.
+2. Its config resolves `OpenMRSFormatter.xml` and `license-header.txt` via
+   `${project.basedir}`, but both files exist only at the repository root, so
+   invoking it explicitly fails on every submodule:
+   `Unable to locate file with path: .../api/OpenMRSFormatter.xml`.
+3. `license-header.txt` contains bare prose with no comment delimiters, so
+   applying it prepends non-comment text and produces Java that will not
+   parse.
 
-   ```bash
-   docker run --name openmrs-sdk-mysql-v8-4-1 -p 3308:3306 -e MYSQL_ROOT_PASSWORD=openmrs -e MYSQL_USER=openmrs -e MYSQL_PASSWORD=openmrs -e MYSQL_DATABASE=chatbot -d mysql:8
-   ```
+Because of (1) and (2) the formatter has never actually run, so the committed
+sources do not match the profile — applying it reformats all 14 Java files.
+Repairing this is tracked as a follow-up; see the "Code style / Spotless" note
+in [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md), which records the fix
+for each defect.
 
-2. **Configure Database**:
-   ```bash
-   docker exec -it openmrs-sdk-mysql-v8-4-1 mysql -u root -p
-   ```
-   Enter password: `openmrs`
-   ```sql
-   CREATE DATABASE chatbot;
-   GRANT ALL PRIVILEGES ON chatbot.* TO 'openmrs'@'172.17.0.1' IDENTIFIED BY 'openmrs';
-   GRANT ALL PRIVILEGES ON chatbot.* TO 'openmrs'@'%' IDENTIFIED BY 'openmrs';
-   FLUSH PRIVILEGES;
-   EXIT;
-   ```
+## 📄 License
 
-3. **Verify Connection**:
-   ```bash
-   mysql -u openmrs -p -h 127.0.0.1 -P 3308 --protocol=TCP chatbot
-   ```
-   Enter password: `openmrs`
-
-## 🚀 Setup OpenMRS Server
-
-1. **Run SDK Setup**:
-   ```bash
-   mvn openmrs-sdk:setup
-   ```
-
-2. **Answer Prompts**:
-   - **Server ID**: `chatbot`
-   - **Distribution**: `3 (Platform)`
-   - **OpenMRS Version**: `2.7.3`
-   - **Port**: `8080`
-   - **Database Option**: `3 (Existing Docker container)`
-   - **Container**: `1 (openmrs-sdk-mysql-v8-4-1)`
-   - **Database Credentials**:
-     - Username: `openmrs`
-     - Password: `openmrs`
-
-3. **Configure `openmrs-runtime.properties`**:
-   ```bash
-   cat << EOF > ~/openmrs/chatbot/openmrs-runtime.properties
-connection.url=jdbc:mysql://127.0.0.1:3308/chatbot?autoReconnect=true&useUnicode=true&characterEncoding=UTF-8&sessionVariables=default_storage_engine=InnoDB
-connection.username=openmrs
-connection.password=openmrs
-module.allow_web_admin=true
-auto_update_database=true
-security.requireBasicAuthentication=false
-EOF
-   ```
-
-4. **Add Dependencies**:
-   ```bash
-   wget https://repo1.maven.org/maven2/mysql/mysql-connector-java/8.0.30/mysql-connector-java-8.0.30.jar -O ~/openmrs/chatbot/server/apache-tomcat/lib/mysql-connector-java-8.0.30.jar
-   chmod u+r ~/openmrs/chatbot/server/apache-tomcat/lib/mysql-connector-java-8.0.30.jar
-   mkdir -p ~/openmrs/chatbot/webapps/openmrs/WEB-INF/lib
-   cp ~/openmrs/chatbot/server/apache-tomcat/lib/mysql-connector-java-8.0.30.jar ~/openmrs/chatbot/webapps/openmrs/WEB-INF/lib/
-   wget https://repo1.maven.org/maven2/org/yaml/snakeyaml/1.33/snakeyaml-1.33.jar -O ~/openmrs/chatbot/server/apache-tomcat/lib/snakeyaml-1.33.jar
-   chmod u+r ~/openmrs/chatbot/server/apache-tomcat/lib/snakeyaml-1.33.jar
-   cp ~/openmrs/chatbot/server/apache-tomcat/lib/snakeyaml-1.33.jar ~/openmrs/chatbot/webapps/openmrs/WEB-INF/lib/
-   ```
-
-## 🖥️ Launch OpenMRS
-
-1. **Start OpenMRS**:
-   ```bash
-   export JAVA_HOME=$(/usr/libexec/java_home -v 11)
-   export MAVEN_OPTS="-Xmx1024m"
-   export OPENMRS_HOME=~/openmrs/chatbot
-   cd ~/openmrs/chatbot
-   mvn openmrs-sdk:run -DserverId=chatbot
-   ```
-
-2. **Complete Setup Wizard**:
-   - Open: [http://localhost:8080/openmrs/](http://localhost:8080/openmrs/)
-   - Follow the wizard:
-     - **Database**: MySQL
-     - **URL**: `jdbc:mysql://127.0.0.1:3308/chatbot?autoReconnect=true&useUnicode=true&characterEncoding=UTF-8`
-     - **Username**: `openmrs`
-     - **Password**: `openmrs`
-     - **Admin User**: `admin`/`Admin123`
-     - **Modules**: Ensure `openmrschatbot` is loaded
-     - Choose to create a new schema
-     - Click **Next** until complete
-
-3. **Verify**:
-   - Login: [http://localhost:8080/openmrs/](http://localhost:8080/openmrs/) with `admin`/`Admin123`
-   - Check module in **Admin** > **Manage Modules**
-
-
-## 🔁 Restarting in the Future
-
-1. **Start Docker Desktop**:
-   Ensure it’s running (check the top menu bar).
-
-2. **Start MySQL Container**:
-   ```bash
-   docker start openmrs-sdk-mysql-v8-4-1
-   ```
-
-3. **Run OpenMRS**:
-   ```bash
-   export JAVA_HOME=$(/usr/libexec/java_home -v 11)
-   export MAVEN_OPTS="-Xmx1024m"
-   export OPENMRS_HOME=~/openmrs/chatbot
-   cd ~/openmrs/chatbot
-   mvn openmrs-sdk:run -DserverId=chatbot
-   ```
-
-## 🛠️ Troubleshooting
-
-### MySQL Connection Error
-- **Issue**: `ERROR 2002 (HY000): Can't connect to local MySQL server through socket`
-- **Fix**:
-  - Ensure container is running:
-    ```bash
-    docker ps -a | grep openmrs-sdk-mysql-v8-4-1
-    docker start openmrs-sdk-mysql-v8-4-1
-    ```
-  - Use TCP:
-    ```bash
-    mysql -u openmrs -p -h 127.0.0.1 -P 3308 --protocol=TCP chatbot
-    ```
-
-### Liquibase Schema Error
-- **Issue**: `Unknown column 'retired_reason' in 'location_tag'`
-- **Fix**:
-  - Reset database:
-    ```bash
-    mysql -u root -p -h 127.0.0.1 -P 3308 --protocol=TCP
-    ```
-    ```sql
-    DROP DATABASE chatbot;
-    CREATE DATABASE chatbot;
-    GRANT ALL PRIVILEGES ON chatbot.* TO 'openmrs'@'172.17.0.1' IDENTIFIED BY 'openmrs';
-    GRANT ALL PRIVILEGES ON chatbot.* TO 'openmrs'@'%' IDENTIFIED BY 'openmrs';
-    FLUSH PRIVILEGES;
-    ```
-
-### General Issues
-- **Logs**:
-  ```bash
-  tail -f ~/openmrs/chatbot/server/apache-tomcat/logs/catalina.out
-  ```
-- **Port Conflicts**:
-  ```bash
-  lsof -i :8080
-  kill -9 $(lsof -t -i :8080)
-  ```
-- **Resources**:
-  - [OpenMRS Documentation](https://wiki.openmrs.org/)
-  - [OpenMRS Community](https://talk.openmrs.org/)
-  - [GitHub Issues](https://github.com/ynzhuang/Openmrs-chatbot/issues)
-
+[Mozilla Public License 2.0](LICENSE), together with the
+[OpenMRS Healthcare Disclaimer](http://openmrs.org/license) — matching the
+OpenMRS project's own licensing.

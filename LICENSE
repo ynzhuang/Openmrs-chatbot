@@ -1,0 +1,36 @@
+OpenMRS Chatbot Module
+Copyright (c) 2026 Yan Zhuang
+
+SPDX-License-Identifier: MPL-2.0
+
+--------------------------------------------------------------------------
+Mozilla Public License, version 2.0
+--------------------------------------------------------------------------
+
+This Source Code Form is subject to the terms of the Mozilla Public License,
+v. 2.0. If a copy of the MPL was not distributed with this file, You can
+obtain one at http://mozilla.org/MPL/2.0/. OpenMRS is also distributed under
+the terms of the Healthcare Disclaimer located at http://openmrs.org/license.
+
+The full text of the Mozilla Public License 2.0 is available at:
+
+    https://www.mozilla.org/en-US/MPL/2.0/
+
+This is the same license, and the same notice, used by the OpenMRS project
+itself; see `license-header.txt`, which the Spotless build applies to every
+source file.
+
+--------------------------------------------------------------------------
+Healthcare Disclaimer
+--------------------------------------------------------------------------
+
+This software is provided for use in healthcare settings subject to the
+OpenMRS Healthcare Disclaimer at http://openmrs.org/license. In short: this
+software is not a medical device, carries no warranty of fitness for
+clinical use, and any clinical decision remains the responsibility of a
+qualified practitioner.
+
+That disclaimer matters more than usual here. This module sends clinical
+questions and patient data to a third-party language model provider when an
+API key is configured, and presents generated text to clinicians. See
+SECURITY.md before deploying it against real patient records.

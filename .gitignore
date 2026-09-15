@@ -1,0 +1,36 @@
+# Maven build output. These were committed before this file existed —
+# compiled .class files, .jar and the packaged .omod are build products,
+# rebuilt by `mvn package`, and never belong in version control.
+target/
+*.omod
+
+# IDE / editor
+.idea/
+*.iml
+*.ipr
+*.iws
+.classpath
+.project
+.settings/
+nbproject/
+.vscode/
+
+# OS junk
+.DS_Store
+Thumbs.db
+
+# Logs and temporary files
+*.log
+*.swp
+*~
+
+# Local credentials. The OpenRouter API key is configured as an OpenMRS
+# global property at runtime, never checked in — see SECURITY.md.
+.env
+.env.local
+*.local.properties
+
+# Local OpenMRS runtime state (SDK server dirs, H2/MySQL data, app data dir)
+openmrs-server/
+.OpenMRS/
+*.h2.db

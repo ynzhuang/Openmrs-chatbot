@@ -1,0 +1,34 @@
+version: 2
+
+# Majors are deliberate upgrades here: this is an OpenMRS module pinned to
+# the platform's Java 8 / Spring / Jackson baseline, so a major bump is a
+# compatibility decision, not routine maintenance. Minor and patch only.
+updates:
+  - package-ecosystem: maven
+    directory: "/"
+    schedule:
+      interval: monthly
+    open-pull-requests-limit: 5
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
+    groups:
+      jackson:
+        patterns: ["com.fasterxml.jackson*"]
+      maven-minor-patch:
+        patterns: ["*"]
+        update-types: ["minor", "patch"]
+    labels: ["dependencies"]
+
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: monthly
+    open-pull-requests-limit: 3
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
+    groups:
+      github-actions:
+        patterns: ["*"]
+    labels: ["dependencies", "ci"]

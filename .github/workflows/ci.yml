@@ -1,0 +1,86 @@
+name: CI
+
+on:
+  push:
+    branches: ["main", "master"]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Maven build (compile · test · package)
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+
+      # OpenMRS module parent 1.1.1 targets Java 8; the module source uses
+      # Java 8 APIs (String.join, Map.getOrDefault) and nothing newer.
+      - name: Set up JDK 8
+        uses: actions/setup-java@v4
+        with:
+          java-version: "8"
+          distribution: temurin
+          cache: maven
+
+      # Dependencies resolve from the OpenMRS Nexus as well as Maven Central;
+      # the repositories are declared in the root pom.
+      - name: Build and test
+        run: mvn -B -ntp clean verify
+
+      - name: Upload module artifact
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: chatbot-omod
+          path: omod/target/*.omod
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Upload test reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: surefire-reports
+          path: "**/target/surefire-reports/**"
+          if-no-files-found: ignore
+          retention-days: 7
+
+  format:
+    name: Spotless (format check)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 8
+        uses: actions/setup-java@v4
+        with:
+          java-version: "8"
+          distribution: temurin
+          cache: maven
+
+      # Spotless also runs during `mvn package`; this job reports a
+      # formatting drift as its own red check instead of burying it in
+      # the build log. `mvn spotless:apply` fixes it.
+      - name: Check formatting
+        run: mvn -B -ntp spotless:check
+
+  # The scenario catalog is data that drives real HTTP calls, so a typo in it
+  # is a runtime failure rather than a compile error. Validate it as data.
+  scenarios:
+    name: Scenario catalog (validate)
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validate scenarios.json
+        run: python3 .github/scripts/validate_scenarios.py

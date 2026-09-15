@@ -83,16 +83,15 @@ be executed. See the "router can select a write scenario" section of
 
 ## Code style
 
-Spotless enforces the OpenMRS conventions in `OpenMRSFormatter.xml` and runs
-during `mvn clean package`. To run it on its own:
+Match the surrounding code. Spotless **is currently non-functional** — do not
+run `mvn spotless:apply` expecting it to work: its `license-header.txt` has no
+comment delimiters, so applying it produces Java that will not parse. The
+three defects and the validated fix for each are recorded under "Code style /
+Spotless" in [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md), and CI does not
+gate on formatting until they are addressed.
 
-```sh
-mvn spotless:apply    # format
-mvn spotless:check    # verify — CI runs this as its own job
-```
-
-Every source file carries the MPL 2.0 header from `license-header.txt`;
-Spotless applies it.
+New Java files should carry the same MPL 2.0 header the existing sources use
+(copy it from any file under `api/src/main/java/`).
 
 ---
 
@@ -124,7 +123,7 @@ the precondition check passed and the module POSTed an allergy with
 empty concept references instead of failing closed.
 ```
 
-**Pull requests.** CI must be green: Maven build + tests, Spotless, and the
-scenario validator. Call out anything that touches the security boundaries
+**Pull requests.** CI must be green: the Maven build + tests and the scenario
+validator. (Formatting is not gated — see Code style above.) Call out anything that touches the security boundaries
 in `SECURITY.md` — the session-cookie propagation, the REST base URL, or
 what gets sent to the model provider.

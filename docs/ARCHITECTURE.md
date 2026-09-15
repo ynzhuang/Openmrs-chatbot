@@ -178,6 +178,32 @@ Honest notes for whoever reads the code next:
   unit tests. `validate_scenarios.py` covers the catalog as data, which is
   where the runtime failures actually come from, but it is not a substitute.
 
+### Code style / Spotless — broken, with a validated fix
+
+The Spotless setup has never run. Three defects compound, and each hid the
+next; the CI job added alongside this note was the first thing to invoke it,
+which is how they surfaced.
+
+| # | Defect | Fix |
+|---|---|---|
+| 1 | Declared only in `<pluginManagement>`, never in a module's `<build><plugins>` — so `mvn clean package` does not run it, contrary to the old README | either declare it in the modules, or (preferred) leave it on-demand and let CI gate it |
+| 2 | Config resolves `OpenMRSFormatter.xml` and `license-header.txt` through `${project.basedir}`, but both live only at the repo root — so an explicit invocation fails on every submodule | use `${maven.multiModuleProjectDirectory}` |
+| 3 | `license-header.txt` is bare prose with no comment delimiters, so applying it emits non-comment text and yields unparseable Java — and the same file is shared with the XML format block, which needs `<!-- -->` | split into a `/** */` header for Java and a `<!-- -->` header for XML |
+
+Fixes 2 and 3 were verified locally against these sources: with them applied,
+Spotless resolves the root config from both submodules, adds a correct
+`/** */` header to the three files missing one, leaves the eleven existing
+headers byte-identical, and changes no XML file.
+
+What makes this a separate change rather than a drive-by: because the
+formatter has never run, the committed sources do not match the profile.
+Applying it reformats **all 14 Java files** — `ScenarioController.java` alone
+moves by roughly a thousand lines. That belongs in its own PR, reviewed as a
+formatting normalization, ideally on JDK 8: `removeUnusedImports` uses a
+google-java-format build that cannot run on JDK 21
+(`JCImport.getQualifiedIdentifier()`), so it needs the same JDK the build
+targets.
+
 ### Recently addressed
 
 - **Request JSON is now built with Jackson.** `OpenRouterClient` previously

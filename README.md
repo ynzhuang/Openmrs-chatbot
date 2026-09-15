@@ -147,13 +147,26 @@ openmrs-chatbot/
 
 ## 🎨 Code style
 
-Formatting is enforced by Spotless against the OpenMRS conventions in
-`OpenMRSFormatter.xml`, and runs automatically during `mvn clean package`:
+The project ships an OpenMRS Eclipse formatter profile (`OpenMRSFormatter.xml`)
+and a Spotless configuration, but **Spotless does not currently work** and is
+not wired into the build or CI. Three defects compound:
 
-```sh
-mvn spotless:apply    # format
-mvn spotless:check    # verify — CI runs this
-```
+1. The plugin is declared only in `<pluginManagement>` and never in any
+   module's `<build><plugins>`, so it never runs during `mvn clean package` —
+   contrary to what this README previously claimed.
+2. Its config resolves `OpenMRSFormatter.xml` and `license-header.txt` via
+   `${project.basedir}`, but both files exist only at the repository root, so
+   invoking it explicitly fails on every submodule:
+   `Unable to locate file with path: .../api/OpenMRSFormatter.xml`.
+3. `license-header.txt` contains bare prose with no comment delimiters, so
+   applying it prepends non-comment text and produces Java that will not
+   parse.
+
+Because of (1) and (2) the formatter has never actually run, so the committed
+sources do not match the profile — applying it reformats all 14 Java files.
+Repairing this is tracked as a follow-up; see the "Code style / Spotless" note
+in [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md), which records the fix
+for each defect.
 
 ## 📄 License
 

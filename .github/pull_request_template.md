@@ -8,7 +8,6 @@
 
 - [ ] `mvn clean verify` passes
 - [ ] `python3 .github/scripts/validate_scenarios.py` passes
-- [ ] `mvn spotless:check` passes
 - [ ] Tested against a running OpenMRS instance (say which version)
 
 ## Scope
